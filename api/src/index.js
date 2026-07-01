@@ -1,10 +1,15 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { connectRabbit, publishEvent } from './rabbit.js';
 import { initDb, inserirAluno, inserirMatricula } from './db.js';
 import { registry, eventosPublicados } from './metrics.js';
+import { openapiSpec } from './openapi.js';
 
 const app = express();
 app.use(express.json());
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+app.get('/openapi.json', (_req, res) => res.json(openapiSpec));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
