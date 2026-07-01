@@ -1,0 +1,95 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: academico
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d academico"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      PORT: 3000
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: app
+      PGPASSWORD: app
+      PGDATABASE: academico
+    ports:
+      - "3000:3000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  worker-notificacao:
+    build: ./worker
+    environment:
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUMER: notificacao
+      METRICS_PORT: 9100
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  worker-auditoria:
+    build: ./worker
+    environment:
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUMER: auditoria
+      METRICS_PORT: 9100
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  worker-relatorio:
+    build: ./worker
+    environment:
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUMER: relatorio
+      METRICS_PORT: 9100
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus

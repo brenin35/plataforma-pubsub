@@ -1,0 +1,16 @@
+{
+  "name": "plataforma-pubsub-api",
+  "version": "1.0.0",
+  "description": "API produtora - publica eventos em um exchange topic (pub/sub)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "prom-client": "^15.1.3"
+  }
+}

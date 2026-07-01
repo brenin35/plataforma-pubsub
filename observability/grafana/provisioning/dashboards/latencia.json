@@ -1,0 +1,44 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "Mensageria Pub/Sub - Eventos Academicos",
+  "tags": ["mensageria", "rabbitmq", "pubsub"],
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Latencia publicacao -> processamento (p95 por consumidor)",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(latencia_publicacao_processamento_segundos_bucket[1m])) by (le, consumidor))",
+          "legendFormat": "{{consumidor}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Processados por segundo (por consumidor)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (consumidor) (rate(eventos_processados_total[1m]))",
+          "legendFormat": "{{consumidor}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "DLQ acumulado (por consumidor)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (consumidor) (eventos_dlq_total)", "legendFormat": "{{consumidor}}" }
+      ]
+    }
+  ]
+}

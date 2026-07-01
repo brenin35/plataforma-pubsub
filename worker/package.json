@@ -1,0 +1,13 @@
+{
+  "name": "plataforma-pubsub-worker",
+  "version": "1.0.0",
+  "description": "Consumidor generico - vira um assinante conforme CONSUMER",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": { "start": "node src/index.js" },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "express": "^4.19.2",
+    "prom-client": "^15.1.3"
+  }
+}
