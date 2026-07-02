@@ -9,8 +9,56 @@
   "panels": [
     {
       "type": "timeseries",
+      "title": "Requests/s na API (por rota)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (rota) (rate(http_requests_total[1m]))",
+          "legendFormat": "{{rota}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tempo medio de request HTTP (por rota)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (rota) (rate(http_request_duration_segundos_sum[1m])) / sum by (rota) (rate(http_request_duration_segundos_count[1m]))",
+          "legendFormat": "{{rota}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latencia HTTP p95 (por rota)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_segundos_bucket[1m])) by (le, rota))",
+          "legendFormat": "{{rota}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Taxa de erro HTTP (status >= 500)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (rota) (rate(http_requests_total{status=~\"5..\"}[1m]))",
+          "legendFormat": "{{rota}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
       "title": "Latencia publicacao -> processamento (p95 por consumidor)",
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
       "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "targets": [
         {
@@ -22,7 +70,7 @@
     {
       "type": "timeseries",
       "title": "Processados por segundo (por consumidor)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
       "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
       "targets": [
         {
@@ -32,12 +80,39 @@
       ]
     },
     {
-      "type": "stat",
-      "title": "DLQ acumulado (por consumidor)",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "type": "timeseries",
+      "title": "Retries/s (por consumidor)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
       "targets": [
-        { "expr": "sum by (consumidor) (eventos_dlq_total)", "legendFormat": "{{consumidor}}" }
+        {
+          "expr": "sum by (consumidor) (rate(eventos_retry_total[1m]))",
+          "legendFormat": "{{consumidor}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Taxa de sucesso (por consumidor)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (consumidor) (rate(eventos_processados_total[1m])) / (sum by (consumidor) (rate(eventos_processados_total[1m])) + sum by (consumidor) (rate(eventos_falhados_total[1m])))",
+          "legendFormat": "{{consumidor}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Duracao do handler (p95, sucesso vs falha)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(processamento_duracao_segundos_bucket[1m])) by (le, consumidor, resultado))",
+          "legendFormat": "{{consumidor}}-{{resultado}}"
+        }
       ]
     }
   ]

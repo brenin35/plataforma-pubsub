@@ -2,11 +2,22 @@ import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { connectRabbit, publishEvent } from './rabbit.js';
 import { initDb, inserirAluno, inserirMatricula } from './db.js';
-import { registry, eventosPublicados } from './metrics.js';
+import { registry, eventosPublicados, httpRequestsTotal, httpRequestDuration } from './metrics.js';
 import { openapiSpec } from './openapi.js';
 
 const app = express();
 app.use(express.json());
+
+app.use((req, res, next) => {
+  const fim = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    const rota = req.route?.path || req.path;
+    const labels = { metodo: req.method, rota, status: res.statusCode };
+    httpRequestsTotal.inc(labels);
+    fim(labels);
+  });
+  next();
+});
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.get('/openapi.json', (_req, res) => res.json(openapiSpec));

@@ -1,18 +1,8 @@
 import autocannon from 'autocannon';
+import { BASE_URL, seedAluno } from './lib.js';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const DURATION = Number(process.env.DURATION || 30);
-const CONNECTIONS = Number(process.env.CONNECTIONS || 20);
-
-async function seedAluno() {
-  const res = await fetch(`${BASE_URL}/alunos`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome: 'Carga Teste', email: `carga-${Date.now()}@teste.com` }),
-  });
-  const { aluno } = await res.json();
-  return aluno.id;
-}
+const DURATION = Number(process.env.DURATION || 60);
+const CONNECTIONS = Number(process.env.CONNECTIONS || 30);
 
 async function run() {
   const alunoId = await seedAluno();

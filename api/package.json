@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "loadtest": "node scripts/loadtest.js"
+    "loadtest": "node scripts/loadtest.js",
+    "demo:dlq": "node scripts/dlq-demo.js"
   },
   "dependencies": {
     "amqplib": "^0.10.9",

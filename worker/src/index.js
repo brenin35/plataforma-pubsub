@@ -14,6 +14,8 @@ import {
   eventosProcessados,
   eventosFalhados,
   eventosDlq,
+  eventosRetry,
+  processamentoDuracao,
   latenciaPubProc,
 } from './metrics.js';
 import { HANDLERS } from './handlers.js';
@@ -44,7 +46,7 @@ async function connectRabbit(retries = 15, delayMs = 3000) {
 
 async function start() {
   const channel = await connectRabbit();
-  await channel.prefetch(1);
+  await channel.prefetch(Number(process.env.PREFETCH || 20));
   const fila = mainQueue(CONSUMER);
   console.log(`[${CONSUMER}] consumindo ${fila}`);
 
@@ -52,6 +54,7 @@ async function start() {
     if (!msg) return;
     const evento = JSON.parse(msg.content.toString());
     const tentativa = Number(msg.properties.headers?.['x-attempt'] || 0);
+    const fimProcessamento = processamentoDuracao.startTimer({ consumidor: CONSUMER });
 
     if (evento.publishedAt) {
       latenciaPubProc.observe({ consumidor: CONSUMER }, (Date.now() - evento.publishedAt) / 1000);
@@ -61,14 +64,17 @@ async function start() {
       if (evento.falharEm === CONSUMER) throw new Error('falha simulada');
       await HANDLERS[CONSUMER](evento);
       eventosProcessados.inc({ consumidor: CONSUMER });
+      fimProcessamento({ resultado: 'sucesso' });
       channel.ack(msg);
     } catch (err) {
       eventosFalhados.inc({ consumidor: CONSUMER });
+      fimProcessamento({ resultado: 'falha' });
       const proxima = tentativa + 1;
       const headers = { ...msg.properties.headers, 'x-attempt': proxima };
 
       if (proxima < MAX_ATTEMPTS) {
         console.log(`[${CONSUMER}] falha (${err.message}); retry ${proxima}/${MAX_ATTEMPTS - 1}`);
+        eventosRetry.inc({ consumidor: CONSUMER, tentativa: String(proxima) });
         channel.sendToQueue(retryQueue(CONSUMER), msg.content, { persistent: true, headers });
       } else {
         console.log(`[${CONSUMER}] esgotou tentativas -> DLQ`);
